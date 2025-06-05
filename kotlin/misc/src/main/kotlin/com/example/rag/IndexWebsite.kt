@@ -2,11 +2,8 @@ package com.example.rag
 
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -15,7 +12,6 @@ import kotlinx.serialization.json.Json
 import org.jsoup.Jsoup
 import java.net.URI
 import java.util.*
-import kotlin.math.min
 
 // jtokkit imports for token-based chunking
 import com.knuddels.jtokkit.Encodings
