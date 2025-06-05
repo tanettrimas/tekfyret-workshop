@@ -1,0 +1,8 @@
+requests==2.31.0
+beautifulsoup4==4.12.3
+numpy==1.26.4
+qdrant-client==1.7.3
+openai==1.12.0
+anthropic==0.18.1
+chainlit==1.0.505
+python-dotenv==1.0.1
