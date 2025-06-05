@@ -16,7 +16,7 @@ load_dotenv()
 COLLECTION_NAME = "docs"
 QDRANT_URL = "http://localhost:6333"
 EMBED_MODEL = "text-embedding-3-small"
-LLM_MODEL = "claude-sonnet-4-20250514"
+LLM_MODEL = "claude-3-haiku-20240307"
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,84 +28,78 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # 3. Handle initialization errors gracefully
 # 4. Consider how to inform users of setup issues
 
+# Example global variable declarations (you'll assign them in the try block)
+openai_client = None
+anthropic_client = None
+qdrant = None # Renaming for consistency with later usage
+
 if not os.getenv("OPENAI_API_KEY"):
-    logging.error("OPENAI_API_KEY environment variable not found. Please set it in your .env file.")
+    logging.error("CRITICAL: OPENAI_API_KEY environment variable not found. Set it in your .env file.")
+    # For a real app, you might raise SystemExit here to prevent startup.
 if not os.getenv("ANTHROPIC_API_KEY"):
-    logging.error("ANTHROPIC_API_KEY environment variable not found. Please set it in your .env file.")
+    logging.error("CRITICAL: ANTHROPIC_API_KEY environment variable not found. Set it in your .env file.")
+    # For a real app, you might raise SystemExit here.
 
 try:
-    # TODO: Initialize API clients
-    # openai_client = OpenAI()
-    # anthropic_client = anthropic.Anthropic()
-    # qdrant = qdrant_client.QdrantClient(url=QDRANT_URL)
-    pass
+    # Initialize API clients here
+    openai_client = OpenAI() # API key is read from OPENAI_API_KEY environment variable by default
+    anthropic_client = anthropic.Anthropic() # API key is read from ANTHROPIC_API_KEY by default
+    qdrant = qdrant_client.QdrantClient(url=QDRANT_URL) # Use QDRANT_URL constant
+    
+    logging.info("OpenAI, Anthropic, and Qdrant clients initialized successfully.")
+
 except Exception as e:
-    logging.error(f"Failed to initialize API clients: {e}")
-    raise
+    logging.error(f"CRITICAL: Failed to initialize one or more API clients during setup: {e}", exc_info=True)
+    raise SystemExit(f"Application cannot start due to API client initialization failure: {e}")
 
 SYSTEM_PROMPT = (
     "You are an assistant that answers **only** from the provided <context>. "
     "If the answer cannot be found, simply reply with `I don't know`."
 )
 
-def check_qdrant_collection():
+def check_qdrant_collection() -> Tuple[bool, str]:
     """Checks if the Qdrant collection exists and has points."""
-    # TODO: Implement Qdrant collection status check
-    # 1. Try to get collection information from Qdrant
-    # 2. Check if collection exists and has points
-    # 3. Return tuple of (success_boolean, status_message)
-    # 4. Handle exceptions for non-existent collections
-    
-    try:
-        # TODO: Get collection info and check points count
-        
-        return True, f"Collection '{COLLECTION_NAME}' found with points."
-    except Exception as e:
-        logging.error(f"Could not get Qdrant collection info for '{COLLECTION_NAME}': {e}")
-        return False, f"Could not connect to or find Qdrant collection '{COLLECTION_NAME}'. Please ensure Qdrant is running and the indexing script has been run."
+    # TODO: 1. Verify that `qdrant` client is initialized
+    # TODO: 2. Call Qdrant to fetch collection metadata for COLLECTION_NAME
+    # TODO: 3. Determine if the collection exists (404 vs success)
+    # TODO: 4. Check `points_count` > 0
+    # TODO: 5. Return (True, status_message) or (False, error_message)
+    # TODO: 6. Wrap all calls in try/except and log any errors
+    pass
 
 
 def answer_query(query: str, top_k: int = 5) -> Tuple[str, List[str]]:
     """Retrieve context from Qdrant and ask Anthropic; return (answer, sources)."""
-    logging.info(f"Embedding query: '{query[:50]}...'")
+    # TODO: 0. Verify that openai_client, anthropic_client and qdrant are all initialized
     
-    # TODO: Implement complete RAG pipeline
-    # 1. Generate embedding for user query using OpenAI
-    # 2. Search Qdrant for relevant documents using the embedding
-    # 3. Extract context texts and source URLs from search results
-    # 4. Create prompt with context and user query
-    # 5. Get answer from Anthropic using the context
-    # 6. Handle errors at each step gracefully
-    # 7. Return tuple of (answer_text, list_of_sources)
+    # TODO: 1. Generate an embedding for `query` using OpenAI
+    #    - Use openai_client.embeddings.create(...)
+    #    - Extract the vector from the response
     
-    try:
-        # TODO: Generate query embedding
-        # v = openai_client.embeddings.create(model=EMBED_MODEL, input=[query]).data[0].embedding
-        pass
-    except Exception as e:
-        logging.error(f"Failed to embed query with OpenAI: {e}")
-        return f"Error: Could not embed your question. {e}", []
-
-    logging.info(f"Searching Qdrant collection '{COLLECTION_NAME}' for top {top_k} results.")
-    try:
-        # TODO: Search Qdrant for relevant documents
-        # hits = qdrant.search(...)
-        pass
-    except Exception as e:
-        logging.error(f"Failed to search Qdrant: {e}")
-        return f"Error: Could not retrieve information from the knowledge base. {e}", []
-
-    # TODO: Process search results
-    # Check if hits were found
-    # Extract sources and context texts
-    # Handle empty results
-
-    # TODO: Generate answer using Anthropic
-    # Create context string and user message
-    # Call Anthropic API with system prompt
-    # Extract and return the response
-
-    return "Implementation needed", []
+    # TODO: 2. Search Qdrant with that embedding
+    #    - Use qdrant.search(...)
+    #    - Request payloads so you get stored text and URLs
+    
+    # TODO: 3. Extract and assemble:
+    #    - A list of source URLs
+    #    - A combined context string from the returned document texts
+    
+    # TODO: 4. Build your prompt:
+    #    - Wrap your context in <context>…</context>
+    #    - Append “User Question: {query}”
+    #    - Apply your SYSTEM_PROMPT
+    
+    # TODO: 5. Send the prompt to Anthropic for completion
+    #    - Use anthropic_client.messages.create(...)
+    #    - Extract the answer text
+    
+    # TODO: 6. Add proper try/except around each external call
+    #    - Log or return useful error messages if something fails
+    
+    # TODO: 7. Return a tuple of (answer_text, sources_list)
+    #    - Ensure you return unique/filtered URLs
+    
+    pass
 
 
 # --- Chainlit Callbacks ---
@@ -113,64 +107,22 @@ def answer_query(query: str, top_k: int = 5) -> Tuple[str, List[str]]:
 @cl.on_chat_start
 async def on_chat_start():
     """Initialize the chat session."""
-    logging.info("New chat session started.")
-    
-    # TODO: Implement chat session initialization
-    # 1. Check Qdrant collection status asynchronously
-    # 2. Send welcome message based on collection status
-    # 3. Set session state for chat readiness
-    # 4. Verify all API clients are initialized
-    
-    collection_ok, status_message = await asyncio.get_event_loop().run_in_executor(None, check_qdrant_collection)
-    
-    if collection_ok:
-        await cl.Message(
-            f"👋 Welcome! I'm ready to answer questions about the indexed content. {status_message}"
-        ).send()
-        cl.user_session.set("ready_to_chat", True)
-    else:
-        await cl.Message(
-            f"⚠️ Welcome! There seems to be an issue with the knowledge base. {status_message}"
-        ).send()
-        cl.user_session.set("ready_to_chat", False)
-    
-    # TODO: Add client verification check
+    # TODO: 1. Verify that OpenAI, Anthropic and Qdrant clients are all initialized
+    # TODO: 2. Run `check_qdrant_collection` asynchronously
+    # TODO: 3. Based on its result, send either a welcome or warning message
+    # TODO: 4. Set `cl.user_session.set("ready_to_chat", True/False)` accordingly
+    # TODO: 5. Handle and log any unexpected exceptions
+    pass
 
 
 @cl.on_message
 async def on_message(message: cl.Message):
     """Handle incoming user messages."""
-    # TODO: Implement message handling
-    # 1. Check if chat is ready (knowledge base available)
-    # 2. Extract user query from message
-    # 3. Call answer_query function asynchronously
-    # 4. Format response with sources as clickable links
-    # 5. Handle errors gracefully
-    # 6. Update the message with final content
-    
-    if not cl.user_session.get("ready_to_chat", False):
-        await cl.Message(
-            "I'm not ready to chat yet. Please check the initial messages or server logs for issues."
-        ).send()
-        return
-
-    query = message.content.strip()
-    logging.info(f"Received query: '{query}'")
-
-    msg = cl.Message(content="")
-    await msg.send()
-
-    try:
-        # TODO: Process query and get answer
-        # answer_text, sources = await asyncio.get_event_loop().run_in_executor(None, answer_query, query)
-        
-        # TODO: Format response with sources
-        # Create markdown formatted response with clickable source links
-        
-        # TODO: Update message with final content
-        
-        pass
-
-    except Exception as e:
-        logging.error(f"Error processing message: {e}")
-        await cl.Message(content=f"❌ An unexpected error occurred: {e}").send()
+    # TODO: 1. Check `cl.user_session.get("ready_to_chat")` and bail if False
+    # TODO: 2. Validate/extract the text query from `message.content`
+    # TODO: 3. Send a “Thinking…” placeholder response
+    # TODO: 4. Call `answer_query` in a background thread
+    # TODO: 5. Format the returned answer and sources into Markdown
+    # TODO: 6. Update or replace the placeholder with the final content
+    # TODO: 7. Wrap each step in try/except to catch/log errors and inform the user
+    #await cl.Message(content=).send()

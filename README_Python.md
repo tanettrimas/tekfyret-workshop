@@ -55,7 +55,7 @@
 
 *   **Imports:** `os, requests, BeautifulSoup, OpenAI, QdrantClient, VectorParams, PointStruct, uuid, dotenv, tiktoken` (if using tiktoken for chunking).
 *   **Load Env Vars:** `load_dotenv()`.
-*   **Config:** API keys, QDRANT_URL, `COLLECTION_NAME` (e.g., "py_docs"), `EMBED_MODEL` (e.g., "text-embedding-3-small"), target `WEBSITE_URL`, `MAX_PAGES`.
+*   **Config:** API keys in the .env
 *   **Initialize Clients:** `OpenAI()`, `QdrantClient(url=QDRANT_URL)`.
 *   **`scrape_website(base_url, max_pages)` function:**
     *   Use `requests.get()` and `BeautifulSoup` to fetch and parse HTML.

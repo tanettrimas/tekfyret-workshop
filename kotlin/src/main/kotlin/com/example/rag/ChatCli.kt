@@ -98,124 +98,128 @@ private const val ANTHROPIC_SYSTEM_PROMPT = "You are an assistant that answers *
                                           "If the answer cannot be found, simply reply with I don't know. " +
                                           "Format your answer clearly and concisely."
 
-// --- Core Chat Logic ---
-suspend fun generateQueryEmbedding(query: String): List<Float> {
-    // TODO: Implement query embedding generation
-    // 1. Make HTTP POST request to OpenAI embeddings API
-    // 2. Include Authorization header with Bearer token
-    // 3. Send the user query for embedding
-    // 4. Extract embedding vector from response
-    // 5. Convert from Double to Float
-    // 6. Handle errors gracefully and return empty list on failure
-    
+// --- RAG Pipeline Functions ---
+suspend fun getQueryEmbedding(query: String): List<Float>? {
+    // TODO: Generate a vector embedding for the user's query using the OpenAI Embeddings API.
+    //       This vector captures the semantic meaning of the query, enabling similarity search in Qdrant.
+    //       - Request: POST to `https://api.openai.com/v1/embeddings` with `CliOpenAiEmbeddingRequest`.
+    //       - Key parameters: `model` (e.g., `EMBED_MODEL`), `input` (the user query).
+    //       - Response: Extract the embedding vector from `CliOpenAiEmbeddingResponse.data[0].embedding`.
+    //       - Convert the `Double` vector elements to `Float` for Qdrant compatibility.
+    //       - Ensure robust error handling (network, API errors) and return null on failure.
+    println("   [RAG] Generating embedding for query: \"${query.take(50)}...\"")
     try {
-        // TODO: Implement API call to OpenAI
-        
-        return emptyList()
+        // TODO: Implement OpenAI API call for embedding
+        // Example structure:
+        // val requestBody = CliOpenAiEmbeddingRequest(model = EMBED_MODEL, input = listOf(query))
+        // val response: CliOpenAiEmbeddingResponse = httpClient.post(...) { ... }.body()
+        // val embedding = response.data.firstOrNull()?.embedding?.map { it.toFloat() }
+        // if (embedding != null) { return embedding }
+        println("   [RAG] Error: No embedding data. (This is a placeholder message)")
     } catch (e: Exception) {
-        println("[Embedder] Error: ${e.message}")
-        return emptyList()
+        println("   [RAG] Error generating query embedding: ${e.message}")
     }
+    return null
 }
 
-suspend fun searchQdrant(queryVector: List<Float>): List<String> {
-    if (queryVector.isEmpty()) { 
-        return emptyList() 
-    }
-    
-    // TODO: Implement Qdrant vector search
-    // 1. Make HTTP POST request to Qdrant search endpoint
-    // 2. Send the query vector with search parameters
-    // 3. Request payload data to get the text content
-    // 4. Extract text from each search hit's payload
-    // 5. Return list of context texts
-    // 6. Handle errors and return empty list on failure
-    
+suspend fun searchQdrant(vector: List<Float>): List<CliQdrantPoint> {
+    // TODO: Perform a semantic search in the Qdrant vector database using the query embedding.
+    //       This retrieves the most relevant document chunks (points) from the indexed knowledge base.
+    //       - Request: POST to `$QDRANT_URL/collections/$COLLECTION_NAME/points/search` with `CliQdrantSearchRequest`.
+    //       - Key parameters: `vector` (the query embedding), `limit` (e.g., `TOP_K_RESULTS`), `with_payload = true` (to get text/URL).
+    //       - Response: `CliQdrantSearchResponseResult.result` contains the list of `CliQdrantPoint`.
+    //       - The `payload` in each point contains the original text and source URL.
+    //       - Handle errors gracefully, returning an empty list if the search fails.
+    println("   [RAG] Searching Qdrant for top $TOP_K_RESULTS results...")
     try {
-        // TODO: Implement search logic
-        
-        return emptyList()
-    } catch (e: Exception) { 
-        println("[Qdrant] Error during Qdrant search: ${e.message}")
-        return emptyList() 
-    }
-}
-
-suspend fun getAnthropicAnswer(userQuery: String, context: String): String {
-    // TODO: Implement Anthropic API call for answer generation
-    // 1. Create request with system prompt and user message
-    // 2. Include the context and user query in the message
-    // 3. Make HTTP POST request to Anthropic messages API
-    // 4. Include required headers (x-api-key, anthropic-version)
-    // 5. Extract text content from response
-    // 6. Handle errors gracefully
-    
-    val requestBody = ChatAnthropicRequest(
-        model = LLM_MODEL, 
-        maxTokens = MAX_TOKENS_ANTHROPIC, 
-        system = ANTHROPIC_SYSTEM_PROMPT,
-        messages = listOf(ChatAnthropicMessage(
-            role = "user", 
-            content = "<context>\n${context.trim()}\n</context>\n\nUser question: $userQuery"
-        ))
-    )
-    
-    try {
-        // TODO: Implement API call to Anthropic
-        
-        return "Sorry, I encountered an error trying to get an answer from the AI model."
+        // TODO: Implement Qdrant search call
+        // Example structure:
+        // val requestBody = CliQdrantSearchRequest(vector = vector, limit = TOP_K_RESULTS, with_payload = true)
+        // val response: CliQdrantSearchResponseResult = httpClient.post(...) { ... }.body()
+        // return response.result
+        println("   [RAG] Qdrant search placeholder. No actual search performed.")
     } catch (e: Exception) {
-        println("[LLM] Error during Anthropic call: ${e.message}")
-        return "Sorry, I encountered an error trying to get an answer from the AI model."
+        println("   [RAG] Error searching Qdrant: ${e.message}")
     }
+    return emptyList()
 }
 
-// --- Main CLI Loop ---
+suspend fun getAnswerFromLLM(query: String, context: String): String {
+    // TODO: Generate a natural language answer using Anthropic's Messages API, based on the query and retrieved context.
+    //       The LLM synthesizes information from the context to respond to the user's query.
+    //       - Request: POST to `https://api.anthropic.com/v1/messages` with `CliAnthropicRequest`.
+    //       - Key parameters:
+    //         - `model` (e.g., `LLM_MODEL`).
+    //         - `messages`: A list containing a user message. The content of this message should be carefully constructed to include both the `context` (retrieved from Qdrant) and the original `query`.
+    //           Example format: "<context>\n[context_string]\n</context>\n\nUser Question: [query_string]"
+    //         - `system`: The `SYSTEM_PROMPT` to guide the LLM's behavior (e.g., to answer only from context).
+    //         - `max_tokens`: To limit the length of the generated answer.
+    //       - Response: Extract the answer text from `CliAnthropicResponse.content[0].text`.
+    //       - Implement robust error handling. Return a fallback message if the API call fails.
+    println("   [RAG] Asking LLM (Anthropic $LLM_MODEL) for an answer. Context length: ${context.length} chars.")
+    
+    // TODO: Construct user message and Anthropic API request body here, then make the call.
+    // Example structure:
+    // val userMessageContent = """<context>..."""
+    // val requestMessages = listOf(CliAnthropicMessage(role = "user", content = userMessageContent))
+    // val requestBody = CliAnthropicRequest(...)
+    // try {
+    //     val response: CliAnthropicResponse = httpClient.post(...) { ... }.body()
+    //     val answerText = response.content.firstOrNull()?.text
+    //     if (answerText != null) { return answerText }
+    // } catch (e: Exception) { ... }
+
+    return "I apologize, but I encountered an error while trying to generate an answer. (This is a placeholder response)"
+}
+
+// --- Main Chat Loop ---
 fun main() = runBlocking {
     println("--- Kotlin RAG Chat CLI ---")
-    println("Type your questions to query the indexed website content. Type 'exit' or 'quit' to stop.")
+    println("Using OpenAI model: $EMBED_MODEL, Anthropic model: $LLM_MODEL, Qdrant collection: $COLLECTION_NAME")
+    println("Type 'exit' or 'quit' to end the chat.")
 
-    // TODO: Implement connection check to Qdrant
-    // 1. Make HTTP GET request to check if collection exists
-    // 2. Print success or error message
-    // 3. Exit if connection fails
-    
-    try {
-        // TODO: Check Qdrant connection
-        
-    } catch (e: Exception) {
-        println("[System] Error: Could not connect to Qdrant or collection '$COLLECTION_NAME' does not exist.")
-        println("Please ensure Qdrant is running and you have run IndexWebsite.kt first.")
-        println("Error details: ${e.message}")
-        return@runBlocking
-    }
+    // TODO: Orchestrate the RAG pipeline within this main chat loop.
+    //       This involves sequentially calling the functions above for each user query.
+    //       Key RAG pipeline steps:
+    //       1. Read user query.
+    //       2. Generate query embedding: `getQueryEmbedding(query)`.
+    //       3. Search Qdrant for relevant context: `searchQdrant(embeddingVector)`.
+    //       4. Compile context: Extract text from Qdrant results (`hit.payload?.get("text")`) and format into a single string.
+    //          Also, collect source URLs (`hit.payload?.get("url")`) for citation.
+    //       5. Generate answer using LLM: `getAnswerFromLLM(query, compiledContext)`.
+    //       6. Display answer and sources.
+    //       - Ensure comprehensive error handling at each stage (e.g., if embedding fails, or Qdrant returns no hits).
+    //       - The `SYSTEM_PROMPT` guides the LLM to respond "I don't know" if context is insufficient.
 
-    // TODO: Implement main chat loop
-    // 1. Read user input in a loop
-    // 2. Handle exit commands (exit, quit)
-    // 3. For each user query:
-    //    a. Generate embedding for the query
-    //    b. Search Qdrant for relevant context
-    //    c. Get answer from Anthropic using the context
-    //    d. Display the answer to the user
-    // 4. Handle errors gracefully for each step
-    // 5. Close HTTP client when done
-    
     while (true) {
-        print("\n> Question: ")
-        val userInput = readLine()
-        
-        if (userInput.isNullOrBlank() || userInput.equals("exit", ignoreCase = true) || userInput.equals("quit", ignoreCase = true)) {
+        print("\nAsk a question: ")
+        val query = readlnOrNull()?.trim()
+
+        if (query.isNullOrEmpty()) {
+            continue
+        }
+        if (query.equals("exit", ignoreCase = true) || query.equals("quit", ignoreCase = true)) {
+            println("Exiting chat.")
             break
         }
 
-        // TODO: Implement the RAG pipeline:
-        // 1. Embed user query
-        // 2. Search Qdrant for context
-        // 3. Get answer from Anthropic
-        // 4. Display result
+        println("Processing your query... (This is a placeholder, RAG pipeline not yet implemented here)")
+
+        // TODO: Implement the RAG pipeline steps as outlined in the main TODO comment above.
+        // Example structure:
+        // val queryVector = getQueryEmbedding(query)
+        // if (queryVector == null) { /* handle error, continue */ }
+        // val searchResults = searchQdrant(queryVector)
+        // ... process searchResults to get contextString and sources ...
+        // val answer = getAnswerFromLLM(query, contextString)
+        // println("\n🤖 Answer: $answer")
+        // ... print sources ...
+        
+        // Placeholder answer for now:
+        println("\n🤖 Answer: This is a placeholder response. The RAG pipeline needs to be implemented.")
+
     }
-    
-    println("Exiting chat. Goodbye!")
+
     httpClient.close()
+    println("--- Chat session ended ---")
 }
